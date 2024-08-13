@@ -44,6 +44,7 @@ package llama
 bool llamaProgressCallback(float progress, void *user_data);
 */
 import "C"
+
 import (
 	_ "embed"
 	"errors"
@@ -328,6 +329,10 @@ func NewClipContext(modelPath string) *ClipContext {
 	return &ClipContext{c: cc}
 }
 
+func (c *ClipContext) Close() {
+	C.clip_free(c.c)
+}
+
 type LlavaContext struct {
 	c *C.struct_llava_context
 }
@@ -336,12 +341,20 @@ type LlavaImageEmbed struct {
 	c *C.struct_llava_image_embed
 }
 
+func (l *LlavaImageEmbed) Tokens() int {
+	return int(l.c.n_image_pos)
+}
+
 func NewLlavaImageEmbed(clipContext *ClipContext, data []byte) *LlavaImageEmbed {
 	return &LlavaImageEmbed{c: C.llava_image_embed_make_with_bytes(clipContext.c, C.int(runtime.NumCPU()), (*C.uchar)(unsafe.Pointer(&data[0])), C.int(len(data)))}
 }
 
 func LlavaEvalImageEmbed(llamaContext *Context, embed *LlavaImageEmbed, nBatch int, nPast *int) {
 	C.llava_eval_image_embed(llamaContext.c, embed.c, C.int(nBatch), (*C.int)(unsafe.Pointer(nPast)))
+}
+
+func LlavaImageEmbedFree(embed *LlavaImageEmbed) {
+	C.llava_image_embed_free(embed.c)
 }
 
 // sampling
@@ -405,7 +418,6 @@ func (s *SamplingContext) Sample(ctxMain *Context, ctxConfig *Context, idx int) 
 	}
 
 	return int(C.llama_sampling_csample(s.c, ctxMain.c, ctxConfig.c, C.int(idx)))
-
 }
 
 func (s *SamplingContext) Accept(ctxMain *Context, id int, applyGrammar bool) {
