@@ -278,7 +278,7 @@ DIST_RUNNERS = $(addprefix $(RUNNERS_DIST_DIR)/,$(addsuffix /ollama_llama_server
 PAYLOAD_RUNNERS = $(addprefix $(RUNNERS_PAYLOAD_DIR)/,$(addsuffix /ollama_llama_server$(EXE_EXT).gz,$(RUNNERS)))
 BUILD_RUNNERS = $(addprefix $(RUNNERS_BUILD_DIR)/,$(addsuffix /ollama_llama_server$(EXE_EXT),$(RUNNERS)))
 
-all: clean-payload dist payload 
+all: clean-payload .WAIT dist payload 
 
 dist: $(DIST_RUNNERS) $(ROCBLAS_DEP_MANIFEST)
 
@@ -422,11 +422,12 @@ $(RUNNERS_PAYLOAD_DIR)/rocm$(ROCM_VARIANT)/%.gz: $(RUNNERS_BUILD_DIR)/rocm$(ROCM
 clean:
 	rm -rf $(BUILD_DIR) $(DIST_RUNNERS) $(PAYLOAD_RUNNERS) $(RUNNERS_PAYLOAD_DIR)
 
+.NOTPARALLEL: clean-payload
 clean-payload:
 	rm -rf $(addprefix $(RUNNERS_PAYLOAD_DIR)/, $(RUNNERS))
 	mkdir -p $(addprefix $(RUNNERS_PAYLOAD_DIR)/, $(RUNNERS))
 
-.PHONY: all dist payload runners clean clean-payload $(RUNNERS)
+.PHONY: all dist payload runners clean clean-payload $(RUNNERS) .WAIT
 
 # Handy debugging for make variables
 print-%:
