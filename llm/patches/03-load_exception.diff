@@ -1,17 +1,17 @@
 diff --git a/src/llama.cpp b/src/llama.cpp
-index 73f52435..58a00fb1 100644
+index 0615b42c..e5d9c425 100644
 --- a/src/llama.cpp
 +++ b/src/llama.cpp
-@@ -7241,7 +7241,7 @@ static int llama_model_load(const std::string & fname, llama_model & model, llam
+@@ -8886,7 +8886,7 @@ static int llama_model_load(const std::string & fname, llama_model & model, llam
          }
      } catch (const std::exception & err) {
          LLAMA_LOG_ERROR("%s: error loading model: %s\n", __func__, err.what());
 -        return -1;
 +        throw;
      }
- 
-     return 0;
-@@ -17564,16 +17564,23 @@ struct llama_model * llama_load_model_from_file(
+
+     // loading time will be recalculate after the first eval, so
+@@ -18691,16 +18691,23 @@ struct llama_model * llama_load_model_from_file(
          }
          model->rpc_servers.push_back(servers);
      }
@@ -41,5 +41,5 @@ index 73f52435..58a00fb1 100644
 -        return nullptr;
 +        throw;
      }
- 
+
      return model;
