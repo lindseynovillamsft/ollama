@@ -39,6 +39,7 @@ type oneapiHandles struct {
 const (
 	cudaMinimumMemory = 457 * format.MebiByte
 	rocmMinimumMemory = 457 * format.MebiByte
+	musaMinimumMemory = 256 * format.MebiByte
 	// TODO OneAPI minimum memory
 )
 
@@ -54,6 +55,7 @@ var (
 	nvmlLibPath   string
 	rocmGPUs      []RocmGPUInfo
 	oneapiGPUs    []OneapiGPUInfo
+	musaGPUs      []MusaGPUInfo
 )
 
 // With our current CUDA compile flags, older than 5.0 will not work properly
@@ -340,9 +342,17 @@ func GetGPUInfo() GpuInfoList {
 			}
 		}
 
+		// AMD
 		rocmGPUs = AMDGetGPUInfo()
+
+		// Moore Threads
+		musaGPUs = MUSAGetGPUInfo()
+		for i := range musaGPUs {
+			musaGPUs[i].DependencyPath = depPath
+		}
+
 		bootstrapped = true
-		if len(cudaGPUs) == 0 && len(rocmGPUs) == 0 && len(oneapiGPUs) == 0 {
+		if len(cudaGPUs) == 0 && len(rocmGPUs) == 0 && len(oneapiGPUs) == 0 && len(musaGPUs) == 0 {
 			slog.Info("no compatible GPUs were discovered")
 		}
 	}
@@ -442,6 +452,11 @@ func GetGPUInfo() GpuInfoList {
 		if err != nil {
 			slog.Debug("problem refreshing ROCm free memory", "error", err)
 		}
+
+		err = MusaGPUInfoList(musaGPUs).RefreshFreeMemory()
+		if err != nil {
+			slog.Debug("problem refreshing MUSA free memory", "error", err)
+		}
 	}
 
 	resp := []GpuInfo{}
@@ -452,6 +467,9 @@ func GetGPUInfo() GpuInfoList {
 		resp = append(resp, gpu.GpuInfo)
 	}
 	for _, gpu := range oneapiGPUs {
+		resp = append(resp, gpu.GpuInfo)
+	}
+	for _, gpu := range musaGPUs {
 		resp = append(resp, gpu.GpuInfo)
 	}
 	if len(resp) == 0 {
@@ -635,6 +653,8 @@ func (l GpuInfoList) GetVisibleDevicesEnv() (string, string) {
 		return rocmGetVisibleDevicesEnv(l)
 	case "oneapi":
 		return oneapiGetVisibleDevicesEnv(l)
+	case "musa":
+		return musaGetVisibleDevicesEnv(l)
 	default:
 		slog.Debug("no filter required for library " + l[0].Library)
 		return "", ""
